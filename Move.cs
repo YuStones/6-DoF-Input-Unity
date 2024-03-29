@@ -1,23 +1,27 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Numerics;
+using Quaternion = UnityEngine.Quaternion;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Vector3 = UnityEngine.Vector3;
+using Unity.VisualScripting;
+using System;
 
 public class Move : MonoBehaviour
 {
-    private int data;
-    private int angleX;
-    private int angleY;
-    private int angleZ;
+    private int payload;
+    private float data;
+    private float sign;
+    private float QuatW;
+    private float QuatX;
+    private float QuatY;
+    private float QuatZ;
     private int accelX;
     private int accelY;
     private int accelZ;
     private int parser;
-    private Vector3 previousAngle;
-    private Vector3 currentAngle;
-    private Vector3 difference;
+    private Quaternion target;
+    private Vector3 change;
     private Vector3 accel;
     public int accel_sense;
     public int position_scale;
@@ -45,47 +49,59 @@ public class Move : MonoBehaviour
         if (msg != ""){
             // Debug.Log(msg);
             if(int.TryParse(msg, out parser)){
-                data = int.Parse(msg);
+                payload = int.Parse(msg);
+            }  
+            if (payload > 0){
+                sign = 1;
+            }else if(payload < 0){
+                sign = -1;
+            }else{
+                sign = 0;
             }
+            data = Mathf.Abs(payload);
 
-            if (data < 1300000){
+            if (data < 1310000){
+                Debug.Log(data);
                 Debug.LogWarning("Input ignored");
-            }else if(data < 1310000){
-                accel_sense = data - 1300000; //range ±2 <-> ±16
-                Debug.Log("Accelerometer sensitivity set to " + accel_sense + "G");
-                signed_accel_range = accel_sense * (int)(9.81 * 10);
-                Debug.Log("Signed data range: " + signed_accel_range);
-            }else if(data < 1320000){
-                accelX = data - 1310000 - signed_accel_range;
-                accelY = 0;
-                accelZ = 0;
-                accel.Set(accelX,accelY,accelZ);
-                transform.position += accel / position_scale;
-            }else if(data < 1330000){
-                accelY = data - 1320000 - signed_accel_range;
-                accelX = 0;
-                accelZ = 0;
-                accel.Set(accelX,accelY,accelZ);
-                transform.position += accel / position_scale;
-            }else if(data < 1340000){
-                accelZ = data - 1330000 - signed_accel_range;
-                accelX = 0;
-                accelY = 0;
-                accel.Set(accelX,accelY,accelZ);
-                transform.position += accel / position_scale;
-            }else if(data < 1420000){
-                angleX = data - 1410000;
+            }
+            // else if(data < 1320000){
+            //     accelX = data - 1310000;
+            //     accelY = 0;
+            //     accelZ = 0;
+            //     accel.Set(accelX,accelY,accelZ);
+            //     transform.position += accel / position_scale;
+            // }else if(data < 1330000){
+            //     accelY = data - 1320000;
+            //     accelX = 0;
+            //     accelZ = 0;
+            //     accel.Set(accelX,accelY,accelZ);
+            //     transform.position += accel / position_scale;
+            // }else if(data < 1340000){
+            //     accelZ = data - 1330000;
+            //     accelX = 0;
+            //     accelY = 0;
+            //     accel.Set(accelX,accelY,accelZ);
+            //     transform.position += accel / position_scale;
+            // }
+            else if(data < 1420000){
+                QuatW = (data - 1410000) / (float)1000.00;
             }else if(data < 1430000){
-                angleY = data - 1420000;
+                QuatX = (data - 1420000) / (float)1000.00 * sign;
             }else if(data < 1440000){
-                angleZ = data - 1430000;
+                QuatY = (data - 1430000) / (float)1000.00 * sign;
+            }else if(data < 1450000){
+                QuatZ = (data - 1440000) / (float)1000.00 * sign;
             }
 
             //Angle displacement
-            currentAngle.Set(angleX,angleY,angleZ);
-            difference = currentAngle - previousAngle;            
-            transform.Rotate(difference);
-            previousAngle = currentAngle;
+            target.w = QuatW;
+            target.x = QuatX;
+            target.y = QuatZ; //Y-up system
+            target.z = QuatY;
+
+            Debug.Log(target);
+
+            transform.rotation = target;
         }
     }
 
